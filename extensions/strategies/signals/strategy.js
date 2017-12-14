@@ -3,17 +3,18 @@ const	n = require('numbro');
 
 module.exports = function container(get, set, clear) {
 	return {
-		name: 'ta_macd',
+		name: 'signals',
 		description: 'Buy when (MACD - Signal > 0) and sell when (MACD - Signal < 0).',
 
 		getOptions() {
-			this.option('period', 'period length', String, '15m');
+			this.option('period', 'period length', String, '20m');
 			this.option('min_periods', 'min. number of history periods', Number, 10);
 			this.option('ema_short_period', 'number of periods for the shorter EMA', Number, 12);
 			this.option('ema_long_period', 'number of periods for the longer EMA', Number, 26);
 			this.option('signal_period', 'number of periods for the signal EMA', Number, 9);
 			this.option('up_trend_threshold', 'threshold to trigger a buy signal', Number, 0);
 			this.option('down_trend_threshold', 'threshold to trigger a sold signal', Number, 0);
+
 			this.option('overbought_rsi_periods', 'number of periods for overbought RSI', Number, 25);
 			this.option('overbought_rsi', 'sold when RSI exceeds this value', Number, 70);
 		},
@@ -30,17 +31,6 @@ module.exports = function container(get, set, clear) {
 					}
 				}
 			}
-
-      // Compture MACD
-      /* get('lib.ema')(s, 'ema_short', s.options.ema_short_period)
-      get('lib.ema')(s, 'ema_long', s.options.ema_long_period)
-      if (s.period.ema_short && s.period.ema_long) {
-        s.period.macd = (s.period.ema_short - s.period.ema_long)
-        get('lib.ema')(s, 'signal', s.options.signal_period, 'macd')
-        if (s.period.signal) {
-          s.period.macd_histogram = s.period.macd - s.period.signal
-        }
-      } */
 			get('lib.ta_macd')(s, 'macd', 'macd_histogram', 'macd_signal', s.options.ema_long_period, s.options.ema_short_period, s.options.signal_period);
 		},
 

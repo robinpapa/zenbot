@@ -1,78 +1,58 @@
-module.exports = function container (get, set, clear) {
-  return {
-    name: 'sentiment',
-    description: 'Description to be added...',
+const async = require('async');
 
-    getOptions: function () {
-      this.option('period', 'period length', String, '1m')
-      this.option('buy_threshold', 'threshold where the strategy will buy', Number, 100000000)
-      this.option('sell_threshold', 'threshold where the strategy will sell', Number, 0)
-    },
+const newsReader = require('./modules/readnews');
+const newsTester = require('./modules/testnews');
+// const newsNotifier = require('./modules/notifynews');
 
-    calculate: function (s) {
-    },
+const readThenNotify = function (coin, tick, cb) {
+	async.waterfall([
+		async.constant(coin),
+		newsReader,
+		newsTester
+	], (err, sentiment) => {
+		// Result now equals 'done'
+		if (err) {
+			console.log(err);
+		}
+		tick.sentimentm10positive = sentiment.m10.positive;
+		tick.sentimentm60positive = sentiment.m60.positive;
+		tick.sentimentm10negative = sentiment.m10.negative;
+		tick.sentimentm60negative = sentiment.m60.negative;
 
-    onPeriod: function (s, cb) {
-			// {'period':timestamp, 'open':open price, 'high':high price, 'low':low price, 'close':close price, 'volume':volume, 'vwap':volume weighted average price}
-			// Gebruik timestamp om moment te bepalen ten opzichte waarvan het nieuws moet worden bekeken.
-			const request = require('request')
-			const moment = require('moment');
+		if (sentiment.m10.positive / sentiment.m60.positive >= 0.5) {
+			tick.signal = 'buy';
+		} else if (sentiment.m10.negative / sentiment.m60.negative >= 0.5) {
+			tick.signal = 'sell';
+		}
+	});
+};
 
-			// Eerst alle berichten in een dictionary laden
-			// Dan checken op id en als nieuw, toevoegen aan dictionary
-			// Je kunt nu simuleren op laatste 200 berichten.
+module.exports = function container(get, set, clear) {
+	return {
+		name: 'sentiment',
+		description: 'Description to be added...',
 
-			const readNews = function (currency) {
+		getOptions() {
+			this.option('period', 'period length', String, '2m');
+			this.option('min_periods', 'min. number of history periods', Number, 1);
+		},
 
-				const getPage = function (pageURL) {
-					request(pageURL, function (error, response, body) {
-						const results = JSON.parse(body).results;
-						return results
-					});
-				}
+		calculate(s) {
+			// Console.log('work')
+		},
 
-				const newsURL = 'https://cryptopanic.com/api/posts/?auth_token=360763fc954662b1639402e7961b516f6fb19b1d&currency=' + currency
-				const lastOneHourSentiment = {positive: 0, negative: 0, important: 0};
-				const lastThreeHourSentiment = {positive: 0, negative: 0, important: 0};
-				request(newsURL, function (error, response, body) {
-					const results = JSON.parse(body).results;
-					const lastResultTime = results[results.length - 1].created_at;
-					for (const result in results) {
-						if (results[result].currencies.length === 1) {
-							if (moment(results[result].created_at).isAfter(moment().subtract(60, 'minutes'))) {
-								lastOneHourSentiment.positive += results[result].votes.positive;
-								lastOneHourSentiment.negative += results[result].votes.negative;
-								lastOneHourSentiment.important += results[result].votes.important;
-							}
-							if (moment(results[result].created_at).isAfter(moment().subtract(180, 'minutes'))) {
-								lastThreeHourSentiment.positive += results[result].votes.positive;
-								lastThreeHourSentiment.negative += results[result].votes.negative;
-								lastThreeHourSentiment.important += results[result].votes.important;
-							}
-						}
-					}
-					if (error) {
-						console.log(error);
-					}
-					console.log(lastOneHourSentiment, lastThreeHourSentiment);
-				});
-			};
+		onPeriod(s, cb) {
+			readThenNotify(s.asset, s, cb);
+			// RVI = (Close – Open) / (High – Low)
+		},
 
-
-      if (!s.in_preroll) {
-        if (s.period.close < s.options.sell_threshold) {
-          s.signal = 'sell'
-        } else if (s.period.close > s.options.buy_threshold) {
-          s.signal = 'buy'
-        }
-      }
-      cb()
-    },
-
-    onReport: function (s) {
-      var cols = []
-			cols.push('yay')
-      return cols
-    }
-  }
-}
+		onReport(s) {
+			const cols = [];
+			cols.push(s.sentimentm10positive.toString());
+			cols.push(s.sentimentm60positive.toString());
+			cols.push(s.sentimentm10negative.toString());
+			cols.push(s.sentimentm60negative.toString());
+			return cols;
+		}
+	};
+};

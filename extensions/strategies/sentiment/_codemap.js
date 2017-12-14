@@ -1,6 +1,6 @@
 module.exports = {
   _ns: 'zenbot',
 
-  'strategies.stddev': require('./sentiment'),
+  'strategies.sentiment': require('./strategy'),
   'strategies.list[]': '#strategies.sentiment'
 }
