@@ -66,10 +66,17 @@
     "zero-fill": "^2.2.3"
   },
   "devDependencies": {
+<<<<<<< HEAD
     "eslint": "^4.7.1",
     "xo": "^0.18.2"
   },
   "scripts": {
     "test": "xo && ava"
+=======
+    "eslint": "^4.7.1"
+  },
+  "engines": {
+    "node": "^8.0.0 || ^9.0.0"
+>>>>>>> carlos8f/master
   }
 }
