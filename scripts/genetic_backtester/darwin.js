@@ -19,7 +19,7 @@ let Phenotypes = require('./phenotype.js');
 
 let VERSION = 'Zenbot 4 Genetic Backtester v0.2';
 
-let PARALLEL_LIMIT = (process.env.PARALLEL_LIMIT && +process.env.PARALLEL_LIMIT) || require('os').cpus().length;
+let PARALLEL_LIMIT = require('os').cpus().length;
 
 let TREND_EMA_MIN = 20;
 let TREND_EMA_MAX = 20;
@@ -40,7 +40,6 @@ let iterationCount = 0;
 let runCommand = (taskStrategyName, phenotype, cb) => {
   let commonArgs = `--strategy=${taskStrategyName} --period=${phenotype.period} --min_periods=${phenotype.min_periods} --markup_pct=${phenotype.markup_pct} --order_type=${phenotype.order_type} --sell_stop_pct=${phenotype.sell_stop_pct} --buy_stop_pct=${phenotype.buy_stop_pct} --profit_stop_enable_pct=${phenotype.profit_stop_enable_pct} --profit_stop_pct=${phenotype.profit_stop_pct}`;
   let strategyArgs = {
-    crossover_vwap: `--emalen1=${phenotype.emalen1}  --vwap_length=${phenotype.vwap_length} --vwap_max=${phenotype.vwap_max}`,
     cci_srsi: `--cci_periods=${phenotype.rsi_periods} --rsi_periods=${phenotype.srsi_periods} --srsi_periods=${phenotype.srsi_periods} --srsi_k=${phenotype.srsi_k} --srsi_d=${phenotype.srsi_d} --oversold_rsi=${phenotype.oversold_rsi} --overbought_rsi=${phenotype.overbought_rsi} --oversold_cci=${phenotype.oversold_cci} --overbought_cci=${phenotype.overbought_cci} --constant=${phenotype.constant}`,
     srsi_macd: `--rsi_periods=${phenotype.rsi_periods} --srsi_periods=${phenotype.srsi_periods} --srsi_k=${phenotype.srsi_k} --srsi_d=${phenotype.srsi_d} --oversold_rsi=${phenotype.oversold_rsi} --overbought_rsi=${phenotype.overbought_rsi} --ema_short_period=${phenotype.ema_short_period} --ema_long_period=${phenotype.ema_long_period} --signal_period=${phenotype.signal_period} --up_trend_threshold=${phenotype.up_trend_threshold} --down_trend_threshold=${phenotype.down_trend_threshold}`,
     macd: `--ema_short_period=${phenotype.ema_short_period} --ema_long_period=${phenotype.ema_long_period} --signal_period=${phenotype.signal_period} --up_trend_threshold=${phenotype.up_trend_threshold} --down_trend_threshold=${phenotype.down_trend_threshold} --overbought_rsi_periods=${phenotype.overbought_rsi_periods} --overbought_rsi=${phenotype.overbought_rsi}`,
@@ -75,7 +74,7 @@ let runCommand = (taskStrategyName, phenotype, cb) => {
       phenotype['sim'] = result;
       result['fitness'] = Phenotypes.fitness(phenotype);
     } catch (err) {
-      console.log(`Bad output detected`, err.toString());
+      console.log(`Bad output detected`);
       console.log(stdout);
     }
 
@@ -132,6 +131,7 @@ let processOutput = output => {
   delete r.order_adjust_time;
   delete r.population;
   delete r.population_data;
+  delete r.selector;
   delete r.sell_pct;
   delete r.start;
   delete r.stats;
@@ -153,7 +153,6 @@ let processOutput = output => {
     order_type: params.order_type,
     roi: roi,
     wlRatio: losses > 0 ? roundp(wins / losses, 3) : 'Infinity',
-    selector: params.selector,
     strategy: params.strategy,
     frequency: roundp((wins + losses) / days, 3)
   };
@@ -176,17 +175,6 @@ let Range0 = (min, max) => {
   };
   return r;
 };
-
-let RangeFactor = (min, max, factor) => {
-  var r = {
-    type: 'intfactor',
-    min: min,
-    max: max,
-    factor: factor
-  };
-  return r;
-};
-
 
 let RangeFloat = (min, max) => {
   var r = {
@@ -222,22 +210,6 @@ let RangeNeuralActivation = () => {
 };
 
 let strategies = {
-  crossover_vwap: {
-    // -- common
-    period: RangePeriod(1, 200, 'm'),
-    min_periods: Range(1, 200),
-    markup_pct: RangeFloat(0, 5),
-    order_type: RangeMakerTaker(),
-    sell_stop_pct: Range0(1, 50),
-    buy_stop_pct: Range0(1, 50),
-    profit_stop_enable_pct: Range0(1, 20),
-    profit_stop_pct: Range(1,20),
-    
-    // -- strategy
-    emalen1: Range(1, 300),
-    vwap_length: Range(1, 200),
-    vwap_max: RangeFactor(0, 10000, 10)//0 disables this max cap. Test in increments of 10
-  },
   cci_srsi: {
     // -- common
     period: RangePeriod(1, 120, 'm'),
@@ -537,8 +509,8 @@ let simulateGeneration = () => {
 
     results.sort((a, b) => (a.fitness < b.fitness) ? 1 : ((b.fitness < a.fitness) ? -1 : 0));
 
-    let fieldsGeneral = ['selector', 'fitness', 'vsBuyHold', 'wlRatio', 'frequency', 'strategy', 'order_type', 'endBalance', 'buyHold', 'wins', 'losses', 'period', 'min_periods', 'days', 'params'];
-    let fieldNamesGeneral = ['Selector', 'Fitness', 'VS Buy Hold (%)', 'Win/Loss Ratio', '# Trades/Day', 'Strategy', 'Order Type', 'Ending Balance ($)', 'Buy Hold ($)', '# Wins', '# Losses', 'Period', 'Min Periods', '# Days', 'Full Parameters'];
+    let fieldsGeneral = ['fitness', 'vsBuyHold', 'wlRatio', 'frequency', 'strategy', 'order_type', 'endBalance', 'buyHold', 'wins', 'losses', 'period', 'min_periods', 'days', 'params'];
+    let fieldNamesGeneral = ['Fitness', 'VS Buy Hold (%)', 'Win/Loss Ratio', '# Trades/Day', 'Strategy', 'Order Type', 'Ending Balance ($)', 'Buy Hold ($)', '# Wins', '# Losses', 'Period', 'Min Periods', '# Days', 'Full Parameters'];
 
     let csv = json2csv({
       data: results,
