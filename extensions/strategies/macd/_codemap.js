@@ -1,6 +1,6 @@
 module.exports = {
-  _ns: 'zenbot',
+	_ns: 'zenbot',
 
-  'strategies.macd': require('./strategy'),
-  'strategies.list[]': '#strategies.macd'
-}
+	'strategies.macd': require('./strategy'),
+	'strategies.list[]': '#strategies.macd'
+};

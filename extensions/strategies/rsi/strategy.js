@@ -7,13 +7,13 @@ module.exports = function container(get, set, clear) {
 		description: 'Attempts to buy low and sell high by tracking RSI high-water readings.',
 
 		getOptions() {
-			this.option('period', 'period length', String, '15m');
+			this.option('period', 'period length', String, '1m');
 			this.option('min_periods', 'min. number of history periods', Number, 52);
-			this.option('rsi_periods', 'number of RSI periods', 9);
+			this.option('rsi_periods', 'number of RSI periods', 14);
 			this.option('overbought_rsi', 'sell when RSI reaches or goes above this value', Number, 85);
-			this.option('oversold_rsi', 'buy when RSI reaches or drops below this value', Number, 55);
-			this.option('rsi_recover', 'allow RSI to recover this many points before buying', Number, 3);
-			this.option('rsi_drop', 'allow RSI to fall this many points before selling', Number, 0);
+			this.option('oversold_rsi', 'buy when RSI reaches or drops below this value', Number, 30);
+			this.option('rsi_recover', 'allow RSI to recover this many points before buying', Number, 1);
+			this.option('rsi_drop', 'allow RSI to fall this many points before selling', Number, 1);
 			this.option('rsi_divisor', 'sell when RSI reaches high-water reading divided by this value', Number, 2);
 		},
 
